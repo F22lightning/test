@@ -135,6 +135,11 @@
                                 <!-- ซ่อน User ID ป้องกันการใส่เลขคนอื่น เพราะระบบบังคับ Login เข้ามาแล้วจะใช้รหัสตามบัญชีที่เข้าใช้งาน -->
                                 <input type="hidden" id="b-user-id">
                                 <div class="form-group">
+                                    <label data-i18n="col_user">User Name</label>
+                                    <!-- ใส่ช่องแสดงชื่อเพื่อให้รู้ว่ากำลังยืมในนามใคร โดนปรับ readonly เพื่อไม่ให้แก้ได้ -->
+                                    <input type="text" id="b-user-name" readonly disabled style="background: rgba(0,0,0,0.2); cursor: not-allowed; color: var(--primary); font-weight: 600;">
+                                </div>
+                                <div class="form-group">
                                     <label data-i18n="label_rfid">Book RFID / Barcode</label>
                                     <!-- รับค่าเลขหนังสือที่ถูกยืม -->
                                     <input type="text" id="b-barcode" required data-placeholder-i18n="ph_rfid" placeholder="Ex. RF001">

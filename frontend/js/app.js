@@ -209,6 +209,7 @@ function applyRoleConstraints() {
     
     // 3. ปั๊มรหัสผู้ใช้ลงไปในฟอร์มยืม แอบซ่อนไว้อัตโนมัติเวลาส่งคำขอจะได้ใช้รหัสบัญชีตัวเอง
     document.getElementById('b-user-id').value = authUser.id;
+    document.getElementById('b-user-name').value = authUser.name;
     document.getElementById('req-user-id').value = authUser.id;
 
     // 4. ระบบการซ่อนเปิด Class admin-only
