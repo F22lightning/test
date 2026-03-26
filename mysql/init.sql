@@ -49,19 +49,40 @@ CREATE PROCEDURE sp_BorrowBook(IN p_user_id INT, IN p_barcode_rfid VARCHAR(50), 
 BEGIN
     DECLARE v_book_id INT;
     DECLARE v_status VARCHAR(20);
+    DECLARE v_overdue_count INT;
+    
+    -- Transaction Isolation and Locking (For Update)
+    START TRANSACTION;
     
     SELECT id, status INTO v_book_id, v_status 
-    FROM books WHERE barcode_rfid = p_barcode_rfid;
+    FROM books WHERE barcode_rfid = p_barcode_rfid FOR UPDATE;
     
     IF v_book_id IS NULL THEN
+        ROLLBACK;
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Book (Barcode/RFID) not found';
-    ELSEIF v_status != 'available' THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Book is not available';
-    ELSE
-        UPDATE books SET status = 'borrowed' WHERE id = v_book_id;
-        INSERT INTO transactions (user_id, book_id, due_date, type) 
-        VALUES (p_user_id, v_book_id, DATE_ADD(NOW(), INTERVAL 7 DAY), p_borrow_type);
     END IF;
+    
+    IF v_status != 'available' THEN
+        ROLLBACK;
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Book is not available';
+    END IF;
+    
+    -- Sub-task: Prevent delivery if there are unreturned/overdue books
+    IF p_borrow_type = 'delivery' THEN
+        SELECT COUNT(*) INTO v_overdue_count FROM transactions 
+        WHERE user_id = p_user_id AND return_date IS NULL AND due_date < CURRENT_DATE;
+        
+        IF v_overdue_count > 0 THEN
+            ROLLBACK;
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cannot use Delivery: You have unpaid fines or overdue books.';
+        END IF;
+    END IF;
+    
+    UPDATE books SET status = 'borrowed' WHERE id = v_book_id;
+    INSERT INTO transactions (user_id, book_id, due_date, type) 
+    VALUES (p_user_id, v_book_id, DATE_ADD(NOW(), INTERVAL 7 DAY), p_borrow_type);
+    
+    COMMIT;
 END //
 
 DROP PROCEDURE IF EXISTS sp_ReturnBook //

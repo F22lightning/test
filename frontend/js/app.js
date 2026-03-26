@@ -343,12 +343,39 @@ function initNavigation() {
 }
 
 function showMessage(msgKey, isError = false, defaultMsg = "") {
-    const alert = document.getElementById('action-message');
-    const messageStr = translations[currentLang][msgKey] || defaultMsg;
-    alert.style.display = 'block';
-    alert.className = `alert mt-4 ${isError ? 'error' : ''}`;
-    alert.innerHTML = isError ? `<i class="fa-solid fa-triangle-exclamation"></i> ${messageStr}` : `<i class="fa-solid fa-check-circle"></i> ${messageStr}`;
-    setTimeout(() => alert.style.display = 'none', 3000);
+    const messageStr = translations[currentLang]?.[msgKey] || defaultMsg || "Notification";
+    
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.cssText = 'position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:10px; pointer-events:none;';
+        document.body.appendChild(container);
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = 'toast-alert';
+    toast.innerHTML = isError ? `<i class="fa-solid fa-triangle-exclamation"></i> ${messageStr}` : `<i class="fa-solid fa-check-circle"></i> ${messageStr}`;
+    toast.style.cssText = `
+        background: ${isError ? 'var(--danger)' : 'var(--primary)'};
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        font-weight: 500;
+        font-size: 14px;
+        animation: slideInRight 0.3s ease-out forwards;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    `;
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'fadeOutRight 0.3s ease-in forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
 }
 
 /* ------------------------------------------------------------------------
