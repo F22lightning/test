@@ -17,7 +17,7 @@ app.use(bodyParser.json()); // เปิดให้แอปพลิเคช�
 // โดยให้โฟลเดอร์ '../frontend' ชี้ไปที่โฟลเดอร์ frontend ของโปรเจกต์
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-const FINE_PER_DAY = 20; // 👈 ปรับอัตราค่าปรับ/วัน ได้ที่บรรทัดนี้ที่เดียวจบ!
+const FINE_PER_DAY = 10; // 👈 ปรับอัตราค่าปรับ/วัน ได้ที่บรรทัดนี้ที่เดียวจบ!
 
 // สร้างตัวเชื่อมต่อฐานข้อมูล (Connection Pool) เพื่อรองรับการเรียกใช้พร้อมกันหลาย ๆ Request ควบคู่กันไป
 const pool = mysql.createPool({
@@ -259,6 +259,14 @@ app.delete('/api/requests/:id', async (req, res) => {
 // API 15: ลบประวัติการทำรายการ (เฉพาะแอดมิน)
 app.delete('/api/transactions/:id', async (req, res) => {
   try {
+    // เช็คก่อนว่าบิลที่กำลังจะลบ เป็นบิลที่หนังสือยังไม่ได้คืน (active) หรือไม่
+    const [trs] = await promisePool.query('SELECT book_id, status FROM transactions WHERE id = ?', [req.params.id]);
+    if (trs.length > 0 && trs[0].status === 'active') {
+        // ถ้ายืมอยู่แล้วแอดมินกดลบบิลทิ้ง ต้องปลดล็อกหนังสือให้กลับมาว่างด้วย เพื่อไม่ให้หนังสือค้างในระบบ (Ghost state)
+        await promisePool.query('UPDATE books SET status = "available" WHERE id = ?', [trs[0].book_id]);
+    }
+    
+    // ลบบิลทิ้ง
     await promisePool.query('DELETE FROM transactions WHERE id = ?', [req.params.id]);
     res.json({ message: 'Transaction deleted successfully' });
   } catch (error) {
