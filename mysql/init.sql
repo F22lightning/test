@@ -168,6 +168,7 @@ DROP VIEW IF EXISTS vw_TransactionDetails;
 CREATE VIEW vw_TransactionDetails AS
 SELECT 
     t.id as transaction_id,
+    t.user_id,
     u.name as user_name,
     u.type as user_type,
     b.title as book_title,
