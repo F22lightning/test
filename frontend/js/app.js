@@ -473,9 +473,18 @@ async function loadTransactions() {
         
         trs.forEach(tr => {
             const isFined = parseFloat(tr.fine_amount) > 0;
+            
+            let fineText = '-';
+            if (tr.waive_reason) {
+                fineText = `<div style="color:var(--warning); font-weight:bold; font-size:12px; line-height:1.2;" title="${tr.waive_reason}"><i class="fa-solid fa-heart"></i> ยกเว้น<br><small>(${tr.waive_reason})</small></div>`;
+            } else if (isFined) {
+                fineText = `฿${tr.fine_amount}`;
+            }
+
             let actionHtml = '';
             if(authUser.type === 'admin') {
-                actionHtml = `<td><button class="btn admin-only" style="background:#475569; color:#fff; padding:0.3rem 0.6rem; font-size:12px;" onclick="deleteTransaction(${tr.transaction_id})" title="Delete"><i class="fa-solid fa-trash"></i></button></td>`;
+                let waiveBtn = isFined ? `<button class="btn" style="background:var(--warning); color:#000; padding:0.3rem 0.5rem; font-size:12px; margin-right:4px;" onclick="waiveFine(${tr.transaction_id})" title="Waive Fine"><i class="fa-solid fa-wand-magic-sparkles"></i></button>` : '';
+                actionHtml = `<td>${waiveBtn}<button class="btn admin-only" style="background:#475569; color:#fff; padding:0.3rem 0.5rem; font-size:12px;" onclick="deleteTransaction(${tr.transaction_id})" title="Delete"><i class="fa-solid fa-trash"></i></button></td>`;
             }
             tbody.innerHTML += `
                 <tr>
@@ -484,7 +493,7 @@ async function loadTransactions() {
                     <td>${tr.book_title}</td>
                     <td>${new Date(tr.borrow_date).toLocaleDateString()}</td>
                     <td>${new Date(tr.due_date).toLocaleDateString()}</td>
-                    <td class="${isFined ? 'text-red' : ''}" style="${isFined ? 'color: var(--danger); font-weight: 800;' : ''}">${isFined ? '฿'+tr.fine_amount : '-'}</td>
+                    <td class="${isFined ? 'text-red' : ''}" style="${isFined ? 'color: var(--danger); font-weight: 800;' : ''}">${fineText}</td>
                     <td><span class="tag ${tr.status}">${tr.status.toUpperCase()}</span></td>
                     ${authUser.type === 'admin' ? actionHtml : ''}
                 </tr>
@@ -582,6 +591,31 @@ async function deleteTransaction(id) {
         if(res.ok) { showMessage('msg_tr_deleted', false, 'ลบประวัติรายการสำเร็จ!'); loadTransactions(); }
         else { const data = await res.json(); showMessage(null, true, data.error); }
     } catch(e) { showMessage('msg_network_error', true); }
+}
+
+async function waiveFine(id) {
+    const reason = prompt('กรุณาระบุเหตุผลที่ต้องการยกเว้นค่าปรับ (เช่น ป่วย, ลากิจ, สุดวิสัย):');
+    if(reason === null) return; // cancelled
+    if(reason.trim() === '') {
+        alert('กรุณากรอกเหตุผลด้วยครับ');
+        return;
+    }
+    try {
+        const res = await fetch(`/api/transactions/${id}/waive`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason })
+        });
+        if(res.ok) {
+            showMessage('msg_fine_waived', false, 'ยกเว้นค่าปรับและบันทึกเหตุผลเรียบร้อย!');
+            loadTransactions();
+        } else {
+            const data = await res.json();
+            showMessage(null, true, data.error);
+        }
+    } catch(e) {
+        showMessage('msg_network_error', true);
+    }
 }
 
 /* ------------------------------------------------------------------------

@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     return_date DATETIME NULL, -- วันที่นำมาคืนจริง
     type ENUM('onsite', 'delivery') NOT NULL DEFAULT 'onsite', -- รูปแบบการรับหนังสือ
     fine_amount DECIMAL(10,2) DEFAULT 0.00, -- ค่าปรับ (บาท)
+    waive_reason VARCHAR(255) DEFAULT NULL, -- เหตุผลที่ยกเว้นค่าปรับ
     status ENUM('active', 'completed') DEFAULT 'active', -- สถานะบิลนี้เคลียร์หรือยัง
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE, -- ผู้ใช้ถูกลบ บิลลบตาม
     FOREIGN KEY(book_id) REFERENCES books(id) ON DELETE CASCADE -- หนังสือหาย บิลลบตาม (เพื่อความสะอาด)
@@ -176,7 +177,8 @@ SELECT
     t.return_date,
     t.type as delivery_type,
     t.status,
-    t.fine_amount
+    t.fine_amount,
+    t.waive_reason
 FROM transactions t
 JOIN users u ON t.user_id = u.id
 JOIN books b ON t.book_id = b.id;

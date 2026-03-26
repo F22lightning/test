@@ -250,6 +250,17 @@ app.delete('/api/transactions/:id', async (req, res) => {
   }
 });
 
+// API 16: ยกเว้นค่าปรับ (Waive Fine) สำหรับ Admin
+app.post('/api/transactions/:id/waive', async (req, res) => {
+  const { reason } = req.body;
+  try {
+    await promisePool.query('UPDATE transactions SET fine_amount = 0.00, waive_reason = ? WHERE id = ?', [reason || 'กรณีพิเศษ', req.params.id]);
+    res.json({ message: 'Fine waived successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 /* ========================================================================= */
 /* ========================== ฝั่งส่งออกไฟล์เริ่มต้น (Serving)  ======================== */
 /* ========================================================================= */
