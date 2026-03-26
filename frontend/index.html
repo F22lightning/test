@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<!-- เริ่มต้นไฟล์ HTML, สมารถใส่ Attribute data-theme="dark" เบื้องต้นไว้ได้เผื่อไว้สำหรับโหมดมืด -->
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8"> <!-- รองรับตัวอักษรพิเศษทุกภาษารวมถึงภาษาไทย -->
+    <!-- ทำให้เว็บ Response ตามมือถือและจัดขนาดหน้าจอได้ถูกต้อง -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Automated Library System</title>
+    <!-- โหลด Google Fonts (Outfit) เพื่อให้หน้าเว็บฟอนต์ดูโมเดิร์นและอ่านง่าย -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- โหลด Font Awesome เพื่อใช้งานกราฟิกและไอคอนต่างๆ ในเว็บ -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- อ้างอิงลิงก์ไปยังไฟล์ style.css ที่เราปรับแต่งไว้ -->
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+    <!-- หน้าต่าง Login เพื่อกั้น Role สำหรับระดับ Admin และ Member -->
+    <div id="login-view" style="display:flex; height:100vh; align-items:center; justify-content:center;">
+        <div class="card glass" style="max-width:400px; width:100%; text-align:center; padding: 3rem;">
+            <h2 style="margin-bottom: 0.5rem; color:var(--primary); font-size:2rem;"><i class="fa-solid fa-book-open-reader"></i> <span data-i18n="app_title">LibroAuto</span></h2>
+            <p style="margin-bottom: 2rem; color:var(--text-muted);">Please log in to continue</p>
+            <form id="login-form">
+                <div class="form-group" style="text-align:left;">
+                    <label>Email</label>
+                    <input type="email" id="l-email" required placeholder="name@example.com">
+                </div>
+                <div class="form-group" style="text-align:left;">
+                    <label>Password</label>
+                    <input type="password" id="l-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn primary w-full">เข้าสู่ระบบ (Login)</button>
+                <div style="margin-top:1.5rem; font-size:12px; color:var(--text-muted); padding:10px; background:rgba(0,0,0,0.2); border-radius:8px;">
+                    <strong>[Demo Accounts]</strong><br>
+                    Admin: admin@admin.com / admin123<br>
+                    Student: somchai@edu.com / 123456
+                </div>
+                <p id="login-error" style="color:var(--danger); display:none; margin-top:15px; font-weight:600;"><i class="fa-solid fa-triangle-exclamation"></i> Login Failed</p>
+            </form>
+        </div>
+    </div>
+
+    <!-- คอนเทนเนอร์กล่องหลักที่หุ้มหน้าต่างเว็บเพื่อจำกัดความตายตัว จะแสดงก็ต่อเมื่อ Login สำเร็จ -->
+    <div class="app-container" id="main-app" style="display:none;">
+        
+        <!-- แถบเมนูนำทางด้านซ้ายมือ (Sidebar) -->
+        <aside class="sidebar">
+            <!-- ส่วนกล่องโลโก้ -->
+            <div class="logo">
+                <i class="fa-solid fa-book-open-reader"></i> <!-- ไอคอนหนังสือ -->
+                <h2 data-i18n="app_title">LibroAuto</h2> <!-- ป้ายหัวข้อที่จับคู่เปลี่ยนภาษาตามรหัส 'app_title' -->
+            </div>
+            <!-- เมนูนำทาง (Navigation) -->
+            <nav>
+                <!-- การใส่ data-target ช่วยให้เรารู้ว่ากดปุ่มไหนไปโผล่หน้าอะไร, การใส่ data-i18n ช่วยบอกว่าให้แปลข้อความนี้จาก Dictionary ด้วยคีย์ไหน -->
+                <!-- คลาส admin-only จะถูกซ่อนอัตโนมัติหากผู้ใช้ไม่ได้เป็น Admin -->
+                <a href="#" class="nav-item admin-only" data-target="dashboard"><i class="fa-solid fa-chart-pie"></i> <span data-i18n="nav_dashboard">Dashboard</span></a>
+                <a href="#" class="nav-item" data-target="borrow-return"><i class="fa-solid fa-barcode"></i> <span data-i18n="nav_self_service">Self-Service</span></a>
+                <a href="#" class="nav-item" data-target="books"><i class="fa-solid fa-book"></i> <span data-i18n="nav_books">Books & Resources</span></a>
+                <a href="#" class="nav-item admin-only" data-target="users-list"><i class="fa-solid fa-users"></i> <span data-i18n="nav_users">Users / Members</span></a>
+                <a href="#" class="nav-item" data-target="requests"><i class="fa-solid fa-cart-shopping"></i> <span data-i18n="nav_procurement">Procurement</span></a>
+                <a href="#" class="nav-item" data-target="transactions"><i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n="nav_transactions">Transactions</span></a>
+            </nav>
+        </aside>
+
+        <!-- พื้นที่เนื้อหาหลักตรงกลาง (Main Content) -->
+        <main class="main-content">
+            <!-- ส่วนแบนเนอร์หรือเฮดเดอร์ด้านบน -->
+            <header class="header">
+                <div>
+                    <!-- ชื่อหน้า ปรับเปลี่ยนแบบไดนามิกผ่านแอตทริบิวต์ภาษา -->
+                    <h1 id="page-title" data-i18n="dashboard_title">Dashboard</h1> 
+                    <!-- สโลแกนอธิบายรอง -->
+                    <p class="subtitle" id="page-subtitle" data-i18n="dashboard_subtitle">Overview & Daily Reports</p> 
+                </div>
+                <!-- ส่วนปุ่มควบคุมที่มุมขวาบน ธีม/ภาษา/โปรไฟล์ -->
+                <div class="controls">
+                    <!-- ปุ่มสำหรับคลิกสลับภาษาจากไทยเป็นอังกฤษ และในทางกลับกัน -->
+                    <button class="icon-btn" id="lang-toggle" title="Switch Language">TH / EN</button> 
+                    <!-- ปุ่มสำหรับคลิกเปลี่ยนโหมดสว่างหรือมืด (รูปไอคอนดวงจันทร์จะเปลี่ยนผ่าน JS) -->
+                    <button class="icon-btn" id="theme-toggle" title="Toggle Dark/Light Mode"><i class="fa-solid fa-moon"></i></button> 
+                    <!-- กล่องข้อมูลผู้ใช้งาน -->
+                    <div class="user-profile" style="display:flex; align-items:center; gap:12px;">
+                        <div style="text-align:right;">
+                            <!-- โชว์ชื่อ และลิงก์สำหรับกด Logout -->
+                            <strong id="auth-user-name">User</strong><br>
+                            <small id="auth-user-role" style="color:var(--danger); cursor:pointer; font-weight:600;" onclick="handleLogout()">[Logout]</small>
+                        </div>
+                        <img id="auth-user-avatar" src="https://ui-avatars.com/api/?name=U&background=6366f1&color=fff" alt="User"> 
+                    </div>
+                </div>
+            </header>
+
+            <!-- กล่องสำหรับบรรจุเนื้อหาในแต่ละหน้า ซึ่งจะซ่อนหรือเปิดตามลิงก์ที่อยู่ -->
+            <div class="content-body">
+                
+                <!-- ส่วนแผงควบคุม Dashboard (id = dashboard ใช้คู่กับปุ่มนำทาง) -->
+                <!-- แอดทริบิวต์ active ใช้สั่งให้โหลดหน้านี้ขึ้นมาในค่าเริ่มต้น -->
+                <section id="dashboard" class="view admin-only">
+                    <!-- ส่วนแสดงข้อมูลตัวเลขรวม (Stats) จะถูกวาดเพิ่มมาด้วย JavaScript เสมอ -->
+                    <div class="stats-grid" id="daily-stats">
+                        <!-- ข้อมูลสถิติถูก Injection โดยตรง -->
+                    </div>
+                    <!-- ตารางแสดงรายการที่มีการทำในปัจจุบัน (แสดงผลบางส่วน 5 อันล่าสุด) -->
+                    <div class="table-card glass mt-6">
+                        <!-- ป้ายแปลภาษา ชื่อคอลัมน์ -->
+                        <h3 data-i18n="recent_transactions">Recent Transactions</h3>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <!-- ตัวช่วยระบบสองภาษา คอยแปลหัวข้อตาราง -->
+                                    <th data-i18n="col_id">ID</th>
+                                    <th data-i18n="col_user">User</th>
+                                    <th data-i18n="col_book">Book</th>
+                                    <th data-i18n="col_type">Type</th>
+                                    <th data-i18n="col_status">Status</th>
+                                </tr>
+                            </thead>
+                            <!-- ค่าตัวตารางรายการ รอรับ Input จาก Backend -->
+                            <tbody id="recent-transactions-list">
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- หน้าการยืม-และ-คืน ยืนยันข้อมูลด้วยตัวเอง -->
+                <section id="borrow-return" class="view active">
+                    <!-- จัดเป็นกล่องยืม 1 กล่อง และคืน 1 กล่องเรียงคู่กัน -->
+                    <div class="grid-2">
+                        <!-- แบบฟอร์มของการยืมด้วยรหัส RFID -->
+                        <div class="card glass">
+                            <!-- ข้อความแปลภาษา: 'ยืมหนังสือ' -->
+                            <h3><i class="fa-solid fa-arrow-right-from-bracket"></i> <span data-i18n="borrow_book">Borrow Book</span></h3>
+                            <form id="borrow-form" class="mt-4">
+                                <!-- ซ่อน User ID ป้องกันการใส่เลขคนอื่น เพราะระบบบังคับ Login เข้ามาแล้วจะใช้รหัสตามบัญชีที่เข้าใช้งาน -->
+                                <input type="hidden" id="b-user-id">
+                                <div class="form-group">
+                                    <label data-i18n="label_rfid">Book RFID / Barcode</label>
+                                    <!-- รับค่าเลขหนังสือที่ถูกยืม -->
+                                    <input type="text" id="b-barcode" required data-placeholder-i18n="ph_rfid" placeholder="Ex. RF001">
+                                </div>
+                                <div class="form-group">
+                                    <label data-i18n="label_delivery">Delivery Type</label>
+                                    <!-- Select โหมดส่งว่ามารับเอง หรือส่งมอบ -->
+                                    <select id="b-type">
+                                        <option value="onsite" data-i18n="opt_onsite">On-site (รับที่หอสมุด)</option>
+                                        <option value="delivery" data-i18n="opt_delivery">Online (จัดส่ง)</option>
+                                    </select>
+                                </div>
+                                <!-- ปุ่ม Submit สำหรับยืม -->
+                                <button type="submit" class="btn primary w-full" data-i18n="btn_confirm_borrow">Confirm Borrow</button>
+                            </form>
+                        </div>
+                        
+                        <!-- แบบฟอร์มหน้าต่างการคืนหนังสือออโต้ -->
+                        <div class="card glass">
+                            <!-- ข้อความแปลภาษา: 'คืนหนังสือ' -->
+                            <h3><i class="fa-solid fa-arrow-right-to-bracket"></i> <span data-i18n="return_book">Return Book</span></h3>
+                            <form id="return-form" class="mt-4">
+                                <div class="form-group">
+                                    <label data-i18n="label_rfid">Book RFID / Barcode</label>
+                                    <!-- ส่งมาแค่หมายเลขหนังสือก็พอ เดี๋ยว Backend จะจัดแมปกับ User ID ใน Transaction ที่กำลังค้างเพื่อหักล้างยอด -->
+                                    <input type="text" id="r-barcode" required data-placeholder-i18n="ph_rfid" placeholder="Ex. RF001">
+                                </div>
+                                <!-- ปุ่ม Submit ส่งกลับข้อมูล -->
+                                <button type="submit" class="btn secondary w-full" data-i18n="btn_confirm_return">Confirm Return</button>
+                            </form>
+                        </div>
+                    </div>
+                    <!-- แจ้งเตือนสถานะความสำเร็จ หรือล้มเหลวเวลาเรียก API (JS ให้มาบังคับโชว์ชั่วคราว) -->
+                    <div id="action-message" class="alert mt-4" style="display:none;"></div>
+                </section>
+
+                <!-- หน้าหนังสือ (แสดงหนังสือทั้งหมด) -->
+                <section id="books" class="view">
+                    <div class="card glass">
+                        <!-- โชว์จำนวน/ชื่อหนังสือในหอสมุดทั้งหมด -->
+                        <h3 data-i18n="library_resources">Library Resources</h3>
+                        <table class="data-table mt-4">
+                            <thead>
+                                <tr>
+                                    <!-- โครงตารางหนังสือพร้อมคำภาษา -->
+                                    <th data-i18n="col_id">ID</th>
+                                    <th data-i18n="col_title">Title</th>
+                                    <th data-i18n="col_author">Author</th>
+                                    <th>RFID</th>
+                                    <th data-i18n="col_status">Status</th>
+                                    <th class="admin-only">Action</th>
+                                </tr>
+                            </thead>
+                            <!-- จุดวางข้อมูลหนังสือที่จะต่อเติมจาก API ฝั่ง Backend -->
+                            <tbody id="books-list">
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- หน้าผู้ใช้งาน (Users) [เฉพาะ Admin ถึงจะเห็น] -->
+                <section id="users-list" class="view admin-only">
+                    <div class="card glass mb-6">
+                        <!-- แผงฟอร์มเพิ่มผู้ใช้ใหม่ เพื่อกำหนดประเภท -->
+                        <h3 data-i18n="add_user">Add New User</h3>
+                        <form id="user-form" class="flex-form mt-4">
+                            <input type="text" id="u-name" required data-placeholder-i18n="ph_user_name" placeholder="Name">
+                            <input type="email" id="u-email" required data-placeholder-i18n="ph_user_email" placeholder="Email">
+                            <input type="password" id="u-pass" required placeholder="Password">
+                            <!-- เลือกประเภทผู้ใช้งาน -->
+                            <select id="u-type" required style="flex:0.5;">
+                                <option value="student" data-i18n="opt_student">Student</option>
+                                <option value="staff" data-i18n="opt_staff">Staff</option>
+                                <option value="public" data-i18n="opt_public">General Public</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                            <button type="submit" class="btn primary" data-i18n="btn_add_user">Add User</button>
+                        </form>
+                    </div>
+                    <div class="card glass">
+                        <!-- ตารางโชว์ลูกข่ายคนยืมทั้งหมดแยกประเภท -->
+                        <h3 data-i18n="all_users">Library Members</h3>
+                        <table class="data-table mt-4">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="col_id">ID</th>
+                                    <th data-i18n="col_name">Name</th>
+                                    <th data-i18n="col_type">Type</th>
+                                    <th>Email</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- เมนูจัดซื้อ หรือส่งคำขอให้หอสมุด -->
+                <section id="requests" class="view">
+                    <!-- หน้าต่างส่วนบน: ส่งฟอร์มและบันทึกข้อมูลเข้าฐานจัดซื้อ -->
+                    <div class="card glass mb-6 mt-4">
+                        <h3 data-i18n="suggest_book">Suggest a Book</h3>
+                        <!-- Form แบบแนวนอน (flex-form) ใช้ประหยัดพื้นที่กระดาน -->
+                        <form id="request-form" class="flex-form mt-4">
+                            <input type="hidden" id="req-user-id"> <!-- ซ่อน User ID เนื่องจากดึงจาก Session Login -->
+                            <!-- กล่องชื่อเรื่องที่อยากให้พิจารณา -->
+                            <input type="text" id="req-title" required data-placeholder-i18n="ph_book_title" placeholder="Book Title">
+                            <button type="submit" class="btn primary" data-i18n="btn_submit_request">Submit Request</button>
+                        </form>
+                    </div>
+
+                    <!-- หน้าต่าง Approve (Admin Only) โชว์ก็ต่อเมื่อ Admin กดปุ่มอนุมัติจากตารางด้านล่างสุด -->
+                    <div class="card glass mb-6 admin-only" id="approve-card" style="display:none; border-color:var(--secondary);">
+                        <h3><i class="fa-solid fa-check"></i> ทำการจัดซื้อ/อนุมัติ (Approve Request)</h3>
+                        <form id="approve-form" class="flex-form mt-4">
+                            <input type="hidden" id="ap-request-id">
+                            <input type="text" id="ap-title" readonly disabled style="flex:1;">
+                            <input type="text" id="ap-author" placeholder="Author (ชื่อผู้แต่ง)">
+                            <input type="text" id="ap-barcode" required placeholder="Assign RFID/Barcode (ตัวอย่าง RF999)">
+                            <button type="submit" class="btn secondary">Approve & Publish to Books</button>
+                        </form>
+                    </div>
+
+                    <!-- หน้าต่างส่วนล่าง: ข้อมูลที่รอการจัดการจากผู้พัฒนาระบบ (Pending Items) -->
+                    <div class="card glass">
+                        <h3 data-i18n="pending_requests">Pending Requests</h3>
+                        <table class="data-table mt-4">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="col_id">ID</th>
+                                    <th data-i18n="col_title">Title</th>
+                                    <th data-i18n="col_suggested_by">Suggested By</th>
+                                    <th data-i18n="col_date">Date</th>
+                                    <th data-i18n="col_status">Status</th>
+                                    <th class="admin-only">Action</th> <!-- คอลัมน์สำหรับ Admin กดอนุมัติ -->
+                                </tr>
+                            </thead>
+                            <!-- โขว์คำขอทั้งหมดเข้าตาราง -->
+                            <tbody id="requests-list">
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- เมนูประวัติและรายการทั้งหมด (เห็นทุก Transaction ทั้งที่คืนแล้วและการเตือนเรื่องค่าปรับ) -->
+                <section id="transactions" class="view">
+                    <div class="card glass">
+                        <!-- โชว์รายการเบิก/จ่ายคืนทั้งหมดในระบบ (ถ้า Member เห็นแค่ของตัวเอง, Admin เห็นรวม) -->
+                        <h3 data-i18n="all_transactions">All Transactions</h3>
+                        <table class="data-table mt-4">
+                            <thead>
+                                <tr>
+                                    <th>Trans. ID</th>
+                                    <th data-i18n="col_user">User Name</th>
+                                    <th data-i18n="col_book">Book Title</th>
+                                    <th data-i18n="col_borrow_date">Borrow Date</th>
+                                    <th data-i18n="col_due_date">Due Date</th>
+                                    <th data-i18n="col_fine_amount">Fine Amount</th>
+                                    <th data-i18n="col_status">Status</th>
+                                </tr>
+                            </thead>
+                            <!-- โชว์ Transaction -->
+                            <tbody id="all-transactions-list">
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div> <!-- สิ้นสุดกล่อง app-container -->
+
+    <!-- เรียกใช้สคริปต์ Frontend -->
+    <script src="/js/app.js"></script>
+</body>
+</html>
