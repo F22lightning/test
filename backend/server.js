@@ -240,6 +240,16 @@ app.delete('/api/requests/:id', async (req, res) => {
   }
 });
 
+// API 15: ลบประวัติการทำรายการ (เฉพาะแอดมิน)
+app.delete('/api/transactions/:id', async (req, res) => {
+  try {
+    await promisePool.query('DELETE FROM transactions WHERE id = ?', [req.params.id]);
+    res.json({ message: 'Transaction deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 /* ========================================================================= */
 /* ========================== ฝั่งส่งออกไฟล์เริ่มต้น (Serving)  ======================== */
 /* ========================================================================= */

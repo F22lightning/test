@@ -473,6 +473,10 @@ async function loadTransactions() {
         
         trs.forEach(tr => {
             const isFined = parseFloat(tr.fine_amount) > 0;
+            let actionHtml = '';
+            if(authUser.type === 'admin') {
+                actionHtml = `<td><button class="btn admin-only" style="background:#475569; color:#fff; padding:0.3rem 0.6rem; font-size:12px;" onclick="deleteTransaction(${tr.transaction_id})" title="Delete"><i class="fa-solid fa-trash"></i></button></td>`;
+            }
             tbody.innerHTML += `
                 <tr>
                     <td>#${tr.transaction_id}</td>
@@ -482,6 +486,7 @@ async function loadTransactions() {
                     <td>${new Date(tr.due_date).toLocaleDateString()}</td>
                     <td class="${isFined ? 'text-red' : ''}" style="${isFined ? 'color: var(--danger); font-weight: 800;' : ''}">${isFined ? '฿'+tr.fine_amount : '-'}</td>
                     <td><span class="tag ${tr.status}">${tr.status.toUpperCase()}</span></td>
+                    ${authUser.type === 'admin' ? actionHtml : ''}
                 </tr>
             `;
         });
@@ -566,6 +571,15 @@ async function deleteBook(id) {
     try {
         const res = await fetch(`/api/books/${id}`, { method: 'DELETE' });
         if(res.ok) { showMessage('msg_book_deleted'); loadBooks(); }
+        else { const data = await res.json(); showMessage(null, true, data.error); }
+    } catch(e) { showMessage('msg_network_error', true); }
+}
+
+async function deleteTransaction(id) {
+    if(!confirm('ลบประวัติการทำรายการนี้ใช่หรือไม่? (Delete this transaction?)')) return;
+    try {
+        const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+        if(res.ok) { showMessage('msg_tr_deleted', false, 'ลบประวัติรายการสำเร็จ!'); loadTransactions(); }
         else { const data = await res.json(); showMessage(null, true, data.error); }
     } catch(e) { showMessage('msg_network_error', true); }
 }
