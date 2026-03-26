@@ -17,7 +17,8 @@ app.use(bodyParser.json()); // เปิดให้แอปพลิเคช�
 // โดยให้โฟลเดอร์ '../frontend' ชี้ไปที่โฟลเดอร์ frontend ของโปรเจกต์
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-const FINE_PER_DAY = 10; // 👈 ปรับอัตราค่าปรับ/วัน ได้ที่บรรทัดนี้ที่เดียวจบ!
+const FINE_PER_DAY = 20; // 👈 ปรับอัตราค่าปรับ/วัน ได้ที่บรรทัดนี้ที่เดียวจบ!
+const DAYS_TO_BORROW = 7; // 👈 ปรับจำนวนวันที่อนุญาตให้ยืมได้ (ค่าเริ่มต้น 7 วัน)
 
 // สร้างตัวเชื่อมต่อฐานข้อมูล (Connection Pool) เพื่อรองรับการเรียกใช้พร้อมกันหลาย ๆ Request ควบคู่กันไป
 const pool = mysql.createPool({
@@ -122,8 +123,8 @@ app.post('/api/users', async (req, res) => {
 app.post('/api/borrow', async (req, res) => {
   const { user_id, barcode_rfid, borrow_type } = req.body; // ดึงรหัสพนักงาน/นักศึกษา รหัสสินค้า และรูปแบบรับสินค้า
   try {
-    // เรียกคำสั่ง CALL เพื่อรันโปรแกรมย่อยในชั้นของ MySQL โดยตรง (ป้องกันปัญหาข้อมูลหลุดค้าง)
-    await promisePool.query('CALL sp_BorrowBook(?, ?, ?)', [user_id, barcode_rfid, borrow_type]);
+    // เรียกคำสั่ง CALL เพื่อรันโปรแกรมย่อยในชั้นของ MySQL โดยตรง พร้อมส่งวันให้ยืม (DAYS_TO_BORROW) เข้าไป
+    await promisePool.query('CALL sp_BorrowBook(?, ?, ?, ?)', [user_id, barcode_rfid, borrow_type, DAYS_TO_BORROW]);
     res.json({ message: 'Book borrowed successfully' }); // ถ้า SP ไม่ตีกลับบัค (Signal) แสดงว่ายืมเสร็จ
   } catch (error) {
     // 400 Bad Request ถ้าหนังสือหาย หรือสถานะไม่ว่าง (SP ยิง Signal กลับมา)
@@ -224,10 +225,10 @@ app.post('/api/requests/reject', async (req, res) => {
 
 // API 12: การตั้งค่าผู้ดูแล(Admin) ยืนยันคำสั่งซื้อหนังสือ (ใช้ Stored Procedure: sp_ApproveRequest)
 app.post('/api/requests/approve', async (req, res) => {
-  const { request_id, barcode_rfid, author } = req.body; // รับเลขคำขอ พร้อมกับรหัสหนังสือจริงที่ซื้อมาแล้ว 
+  const { request_id, barcode_rfid, author, category } = req.body; // รับเลขคำขอ พร้อมกับรหัสหนังสือจริง หมวดหมู่
   try {
     // ยิงโปรแกรมย่อย SP ให้เปลี่ยนสถานะคำสั่งซื้อเป็นเสร็จสิ้น พ่วงกับย้ายหนังสือนั้นเข้าสู่คลังห้องสมุดเพื่อพร้อมทำงาน
-    await promisePool.query('CALL sp_ApproveRequest(?, ?, ?)', [request_id, barcode_rfid, author || 'Unknown']);
+    await promisePool.query('CALL sp_ApproveRequest(?, ?, ?, ?)', [request_id, barcode_rfid, author || 'Unknown', category || 'General']);
     res.json({ message: 'Request approved and added to books' });
   } catch (error) {
     res.status(400).json({ error: error.sqlMessage || error.message }); // แจ้งกลับกรณีผิดพลาดจาก SP

@@ -188,6 +188,7 @@
                                     <th data-i18n="col_id">ID</th>
                                     <th data-i18n="col_title">Title</th>
                                     <th data-i18n="col_author">Author</th>
+                                    <th>Category</th>
                                     <th>RFID</th>
                                     <th data-i18n="col_status">Status</th>
                                     <th class="admin-only">Action</th>
@@ -257,9 +258,18 @@
                         <form id="approve-form" class="flex-form mt-4">
                             <input type="hidden" id="ap-request-id">
                             <input type="text" id="ap-title" readonly disabled style="flex:1;">
-                            <input type="text" id="ap-author" placeholder="Author (ชื่อผู้แต่ง)">
-                            <input type="text" id="ap-barcode" required placeholder="Assign RFID/Barcode (ตัวอย่าง RF999)">
-                            <button type="submit" class="btn secondary">Approve & Publish to Books</button>
+                            <input type="text" id="ap-author" placeholder="Author (ชื่อผู้แต่ง)" style="flex:1;">
+                            <select id="ap-category" required style="flex:1;">
+                                <option value="" disabled selected>-- Select Category --</option>
+                                <option value="Technology">Technology (เทคโนโลยี)</option>
+                                <option value="Science">Science (วิทยาศาสตร์)</option>
+                                <option value="Business">Business (ธุรกิจ)</option>
+                                <option value="Fiction">Fiction (นิยาย/เรื่องแต่ง)</option>
+                                <option value="Education">Education (การศึกษา)</option>
+                                <option value="Other">Other (อื่นๆ)</option>
+                            </select>
+                            <input type="text" id="ap-barcode" required placeholder="Assign RFID/Barcode (ตัวอย่าง RF999)" style="flex:1;">
+                            <button type="submit" class="btn secondary">Approve</button>
                         </form>
                     </div>
 

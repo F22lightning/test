@@ -53,7 +53,7 @@ DELIMITER //
 DROP PROCEDURE IF EXISTS sp_BorrowBook //
 
 -- ฟังก์ชัน Stored Procedure: ดำเนินการยืมหนังสือ
-CREATE PROCEDURE sp_BorrowBook(IN p_user_id INT, IN p_barcode_rfid VARCHAR(50), IN p_borrow_type ENUM('onsite', 'delivery'))
+CREATE PROCEDURE sp_BorrowBook(IN p_user_id INT, IN p_barcode_rfid VARCHAR(50), IN p_borrow_type ENUM('onsite', 'delivery'), IN p_borrow_days INT)
 BEGIN
     DECLARE v_book_id INT; -- ตัวแปรเก็บเล่มที่ค้นพบ
     DECLARE v_status VARCHAR(20); -- ตัวแปรเก็บสถานะหนังสือ
@@ -95,9 +95,9 @@ BEGIN
     -- อัปเดตสถานะหนังสือเป็น 'กำลังถูกยืม'
     UPDATE books SET status = 'borrowed' WHERE id = v_book_id;
     
-    -- สร้างบิลรายการยืม กำหนดเวลาส่งคืนคือ 7 วันถัดไปนับจากวันนี้
+    -- สร้างบิลรายการยืม กำหนดเวลาส่งคืนตามจำนวนวัน (p_borrow_days) ที่ส่งมาจาก Node.js
     INSERT INTO transactions (user_id, book_id, due_date, type) 
-    VALUES (p_user_id, v_book_id, DATE_ADD(NOW(), INTERVAL 7 DAY), p_borrow_type);
+    VALUES (p_user_id, v_book_id, DATE_ADD(NOW(), INTERVAL p_borrow_days DAY), p_borrow_type);
     
     -- ยืนยันการเปลี่ยนแปลงข้อมูล
     COMMIT;

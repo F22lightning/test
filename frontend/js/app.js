@@ -470,6 +470,7 @@ async function loadBooks() {
                     <td>${b.id}</td>
                     <td>${b.title}</td>
                     <td>${b.author || '-'}</td>
+                    <td><span class="tag" style="background:var(--bg-card); border:1px solid var(--border); color:var(--text);">${b.category || 'General'}</span></td>
                     <td><code>${b.barcode_rfid}</code></td>
                     <td><span class="tag ${b.status}">${b.status.toUpperCase()}</span></td>
                     ${authUser.type === 'admin' ? actionHtml : ''}
@@ -712,6 +713,7 @@ async function handleApproveRequest(e) { e.preventDefault();
     const payload = {
         request_id: document.getElementById('ap-request-id').value,
         author: document.getElementById('ap-author').value,
+        category: document.getElementById('ap-category').value,
         barcode_rfid: document.getElementById('ap-barcode').value
     };
     try {
