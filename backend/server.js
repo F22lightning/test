@@ -17,6 +17,8 @@ app.use(bodyParser.json()); // เปิดให้แอปพลิเคช�
 // โดยให้โฟลเดอร์ '../frontend' ชี้ไปที่โฟลเดอร์ frontend ของโปรเจกต์
 app.use(express.static(path.join(__dirname, '../frontend')));
 
+const FINE_PER_DAY = 20; // 👈 ปรับอัตราค่าปรับ/วัน ได้ที่บรรทัดนี้ที่เดียวจบ!
+
 // สร้างตัวเชื่อมต่อฐานข้อมูล (Connection Pool) เพื่อรองรับการเรียกใช้พร้อมกันหลาย ๆ Request ควบคู่กันไป
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost', // ที่อยู่ของฐานข้อมูล (ค่าเริ่มต้นเป็น localhost)
@@ -133,8 +135,8 @@ app.post('/api/borrow', async (req, res) => {
 app.post('/api/return', async (req, res) => {
   const { barcode_rfid } = req.body; // สแกนแค่รหัสหนังสือตอนคืน ไม่ต้องใช้รหัสคน
   try {
-    // ยิงคำสั่งเข้า SP ของการคืนหนังสือ โดยข้างใน MySQL จะหาบิลยืมค้างและคำนวณวันปรับอัตโนมัติ
-    await promisePool.query('CALL sp_ReturnBook(?)', [barcode_rfid]);
+    // ยิงคำสั่งเข้า SP ของการคืนหนังสือ พร้อมพ่วง "อัตราค่าปรับ" จากค่าคงที่ FINE_PER_DAY ไปให้ MySQL คิดเงิน
+    await promisePool.query('CALL sp_ReturnBook(?, ?)', [barcode_rfid, FINE_PER_DAY]);
     res.json({ message: 'Book returned successfully' });
   } catch (error) {
     res.status(400).json({ error: error.sqlMessage || error.message });
@@ -165,6 +167,20 @@ app.get('/api/transactions', async (req, res) => {
     }
     q += ' ORDER BY borrow_date DESC'; // จัดเรียงลำดับจากล่าสุดไปเก่าสุด
     const [rows] = await promisePool.query(q, p);
+    
+    // โบนัส: คำนวณค่าปรับสดๆ (Real-time Accrued Fine) ให้สำหรับรายการที่ยังไม่คืน (Active)
+    const now = new Date();
+    rows.forEach(row => {
+      // ถ้า status ยังเป็น active และเกินกำหนดแล้ว คูดด้วย FINE_PER_DAY
+      if (row.status === 'active' && row.due_date) {
+        const due = new Date(row.due_date);
+        const diffDays = Math.ceil((now - due) / (1000 * 60 * 60 * 24));
+        if (diffDays > 0) {
+          row.fine_amount = (diffDays * FINE_PER_DAY).toFixed(2);
+        }
+      }
+    });
+
     res.json(rows); // โยนประวัติกลับเป็น JSON Array
   } catch (error) {
     res.status(500).json({ error: error.message });

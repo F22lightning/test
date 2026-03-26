@@ -106,7 +106,7 @@ END //
 DROP PROCEDURE IF EXISTS sp_ReturnBook //
 
 -- ฟังก์ชัน Stored Procedure: ดำเนินการส่งคืนหนังสือและคำนวณค่าปรับ
-CREATE PROCEDURE sp_ReturnBook(IN p_barcode_rfid VARCHAR(50))
+CREATE PROCEDURE sp_ReturnBook(IN p_barcode_rfid VARCHAR(50), IN p_fine_rate DECIMAL(10,2))
 BEGIN
     DECLARE v_transaction_id INT;
     DECLARE v_book_id INT;
@@ -137,9 +137,9 @@ BEGIN
         -- คำนวณวันที่เกินกำหนดเปรียบเทียบกับวันนี้
         SET v_days_overdue = DATEDIFF(NOW(), v_due_date);
         
-        -- ถ้าคืนช้ากว่ากำหนด ให้นำจำนวนวันคูณอัตราค่าปรับ (วันละ 10 บาท)
+        -- ถ้าคืนช้ากว่ากำหนด ให้นำจำนวนวันคูณอัตราค่าปรับ (ส่งพารามิเตอร์มาจาก Node.js)
         IF v_days_overdue > 0 THEN
-            SET v_fine_calculated = v_days_overdue * 10;
+            SET v_fine_calculated = v_days_overdue * p_fine_rate;
         END IF;
         
         -- อัปเดตปิดบิล ใส่เวลาที่คืน และยอดค่าปรับ
