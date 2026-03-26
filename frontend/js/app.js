@@ -472,6 +472,51 @@ async function loadTransactions() {
         const tbody = document.getElementById('all-transactions-list');
         tbody.innerHTML = '';
         
+        // ------------------ คำนวณสรุปข้อมูล (Stats) ------------------
+        let activeBorrows = 0;
+        let nearExpiry = 0;
+        let totalFines = 0;
+        const now = new Date();
+        
+        trs.forEach(tr => {
+            if (tr.status === 'active') {
+                activeBorrows++;
+                const due = new Date(tr.due_date);
+                const diffDays = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                if (diffDays <= 2 && diffDays >= 0) nearExpiry++;
+            }
+            if(parseFloat(tr.fine_amount) > 0 && !tr.waive_reason) {
+                totalFines += parseFloat(tr.fine_amount); // รวมเฉพาะค่าปรับที่ยังไม่โดน Waive ล้างไป
+            }
+        });
+
+        // วาด UI กล่องสรุป
+        const statsGrid = document.getElementById('user-stats-grid');
+        statsGrid.innerHTML = `
+            <div class="stat-card glass" style="background: rgba(255,255,255,0.03);">
+                <i class="fa-solid fa-book-open" style="font-size:24px; color:var(--primary);"></i>
+                <div class="stat-info">
+                    <h4>กำลังใช้งาน (Active Borrows)</h4>
+                    <h2>${activeBorrows} <small style="font-size:14px; font-weight:normal;">เล่ม</small></h2>
+                </div>
+            </div>
+            <div class="stat-card glass" style="background: rgba(255,255,255,0.03);">
+                <i class="fa-solid fa-clock-rotate-left" style="font-size:24px; color:var(--warning);"></i>
+                <div class="stat-info">
+                    <h4>ใกล้กำหนดคืน (≤ 2 วัน)</h4>
+                    <h2 class="${nearExpiry > 0 ? 'text-warning' : ''}">${nearExpiry} <small style="font-size:14px; font-weight:normal;">เล่ม</small></h2>
+                </div>
+            </div>
+            <div class="stat-card glass" style="background: rgba(255,255,255,0.03);">
+                <i class="fa-solid fa-file-invoice-dollar" style="font-size:24px; color:var(--danger);"></i>
+                <div class="stat-info">
+                    <h4>ยอดค้างชำระ (Fines)</h4>
+                    <h2 class="${totalFines > 0 ? 'text-red' : ''}">฿${totalFines.toFixed(2)}</h2>
+                </div>
+            </div>
+        `;
+        // --------------------------------------------------------
+
         trs.forEach(tr => {
             const isFined = parseFloat(tr.fine_amount) > 0;
             
