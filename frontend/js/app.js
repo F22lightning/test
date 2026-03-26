@@ -218,16 +218,6 @@ function applyRoleConstraints() {
     if(authUser.type !== 'admin') { // เฉพาะบุคคลที่ไม่ใช่ admin (นักศึกษา,บุคคลทั่วไป)
         // ซ่อนแท็บทั้งหมดที่ระบุว่าเฉพาะแอดมินเท่านั้น
         adminElements.forEach(el => el.style.display = 'none');
-        
-        // บังคับเปลี่ยนหน้าไป Self-Service ทันที เนื่องจาก Dashboard ของ Admin เข้าไม่ได้
-        document.querySelector('[data-target="dashboard"]').classList.remove('active');
-        document.querySelector('[data-target="borrow-return"]').classList.add('active');
-        
-        document.getElementById('dashboard').classList.remove('active');
-        document.getElementById('borrow-return').classList.add('active');
-        
-        activeViewTarget = 'borrow-return';
-        updateDynamicTitles(); // อัพเดท Title ข้างบน
     } else {
         // หากเป็น Admin ก็เปิดสิทธิ์ให้เห็นหมดทุกปุ่ม
         adminElements.forEach(el => el.style.display = '');
@@ -384,41 +374,83 @@ function showMessage(msgKey, isError = false, defaultMsg = "") {
  * ------------------------------------------------------------------------ */
 
 async function loadDashboard() {
-    if(authUser.type !== 'admin') return; // ผู้ใช้ธรรมดาจะไม่ดึงข้อมูลนี้ให้เปลืองเน็ต
     try {
-        const d_res = await fetch('/api/reports/daily');
-        const r_res = await fetch('/api/transactions');
-        let daily = await d_res.json();
-        let recents = await r_res.json();
-
         const statsDiv = document.getElementById('daily-stats');
-        if(daily.length > 0) {
-            const today = daily[daily.length-1];
-            statsDiv.innerHTML = `
-                <div class="stat-card">
-                    <span class="stat-title">Today's Borrows</span><span class="stat-value">${today.total_borrows}</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-title">Fines Collected</span><span class="stat-value">฿${today.total_fines_collected || 0}</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-title">Active Users Today</span><span class="stat-value">${today.unique_users_borrowing || 0}</span>
-                </div>
-            `;
-        }
         const tbody = document.getElementById('recent-transactions-list');
         tbody.innerHTML = '';
-        recents.slice(0, 5).forEach(tr => {
-            tbody.innerHTML += `
-                <tr>
-                    <td>#${tr.transaction_id}</td>
-                    <td>${tr.user_name}</td>
-                    <td>${tr.book_title}</td>
+        statsDiv.innerHTML = '<span style="color: #fff;">Loading...</span>';
+
+        if(authUser.type === 'admin') {
+            // Admin sees Global Stats
+            const d_res = await fetch('/api/reports/daily');
+            const r_res = await fetch('/api/transactions');
+            let daily = await d_res.json();
+            let recents = await r_res.json();
+
+            if(daily.length > 0) {
+                const today = daily[daily.length-1];
+                statsDiv.innerHTML = `
+                    <div class="stat-card glass">
+                        <span class="stat-title">Today's Borrows</span><span class="stat-value">${today.total_borrows}</span>
+                    </div>
+                    <div class="stat-card glass" style="border-left: 5px solid var(--warning);">
+                        <span class="stat-title">Fines Collected</span><span class="stat-value text-red" style="color:var(--danger) !important;">฿${parseFloat(today.total_fines_collected || 0).toFixed(2)}</span>
+                    </div>
+                    <div class="stat-card glass" style="border-left: 5px solid var(--secondary);">
+                        <span class="stat-title">Active Users</span><span class="stat-value text-primary">${today.unique_users_borrowing || 0}</span>
+                    </div>
+                `;
+            } else {
+                statsDiv.innerHTML = '<h4>No data today</h4>';
+            }
+
+            recents.slice(0, 5).forEach(tr => {
+                tbody.innerHTML += `
+                    <tr><td>#${tr.transaction_id}</td><td>${tr.user_name}</td><td>${tr.book_title}</td>
                     <td><span class="tag ${tr.delivery_type === 'delivery' ? 'pending' : 'available'}">${tr.delivery_type.toUpperCase()}</span></td>
-                    <td><span class="tag ${tr.status}">${tr.status.toUpperCase()}</span></td>
-                </tr>
+                    <td><span class="tag ${tr.status}">${tr.status.toUpperCase()}</span></td></tr>
+                `;
+            });
+        } else {
+            // Normal User sees Personal Stats Dashboard
+            const r_res = await fetch(`/api/transactions?user_id=${authUser.id}`);
+            let my_trs = await r_res.json();
+            
+            let activeBorrows = 0; let nearExpiry = 0; let totalFines = 0;
+            const now = new Date();
+            
+            my_trs.forEach(tr => {
+                if (tr.status === 'active') {
+                    activeBorrows++;
+                    const due = new Date(tr.due_date);
+                    const diffDays = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                    if (diffDays <= 2 && diffDays >= 0) nearExpiry++;
+                }
+                if(parseFloat(tr.fine_amount) > 0 && !tr.waive_reason) {
+                    totalFines += parseFloat(tr.fine_amount);
+                }
+            });
+
+            statsDiv.innerHTML = `
+                <div class="stat-card glass">
+                    <span class="stat-title">สถิติการยืมตัวคุณเอง</span><span class="stat-value text-primary">${activeBorrows} <small style="font-size:14px;font-weight:normal;">เล่ม (ใช้งานอยู่)</small></span>
+                </div>
+                <div class="stat-card glass" style="border-left: 5px solid var(--warning);">
+                    <span class="stat-title">ใกล้ถึงกำหนดคืน</span><span class="stat-value ${nearExpiry > 0 ? 'text-warning' : ''}">${nearExpiry} <small style="font-size:14px;font-weight:normal;">เล่ม</small></span>
+                </div>
+                <div class="stat-card glass" style="border-left: 5px solid var(--danger);">
+                    <span class="stat-title">ยอดหนี้ค่าปรับค้างชำระ</span><span class="stat-value ${totalFines > 0 ? 'text-red' : ''}" style="${totalFines > 0 ? 'color:var(--danger) !important;' : ''}">฿${totalFines.toFixed(2)}</span>
+                </div>
             `;
-        });
+
+            my_trs.slice(0, 5).forEach(tr => {
+                tbody.innerHTML += `
+                    <tr><td>#${tr.transaction_id}</td><td>${tr.user_name}</td><td>${tr.book_title}</td>
+                    <td><span class="tag ${tr.delivery_type === 'delivery' ? 'pending' : 'available'}">${tr.delivery_type.toUpperCase()}</span></td>
+                    <td><span class="tag ${tr.status}">${tr.status.toUpperCase()}</span></td></tr>
+                `;
+            });
+        }
     } catch(err) { console.error(err); } 
 }
 
@@ -472,51 +504,6 @@ async function loadTransactions() {
         const tbody = document.getElementById('all-transactions-list');
         tbody.innerHTML = '';
         
-        // ------------------ คำนวณสรุปข้อมูล (Stats) ------------------
-        let activeBorrows = 0;
-        let nearExpiry = 0;
-        let totalFines = 0;
-        const now = new Date();
-        
-        trs.forEach(tr => {
-            if (tr.status === 'active') {
-                activeBorrows++;
-                const due = new Date(tr.due_date);
-                const diffDays = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                if (diffDays <= 2 && diffDays >= 0) nearExpiry++;
-            }
-            if(parseFloat(tr.fine_amount) > 0 && !tr.waive_reason) {
-                totalFines += parseFloat(tr.fine_amount); // รวมเฉพาะค่าปรับที่ยังไม่โดน Waive ล้างไป
-            }
-        });
-
-        // วาด UI กล่องสรุป
-        const statsGrid = document.getElementById('user-stats-grid');
-        statsGrid.innerHTML = `
-            <div class="stat-card glass" style="background: rgba(255,255,255,0.03);">
-                <i class="fa-solid fa-book-open" style="font-size:24px; color:var(--primary);"></i>
-                <div class="stat-info">
-                    <h4>กำลังใช้งาน (Active Borrows)</h4>
-                    <h2>${activeBorrows} <small style="font-size:14px; font-weight:normal;">เล่ม</small></h2>
-                </div>
-            </div>
-            <div class="stat-card glass" style="background: rgba(255,255,255,0.03);">
-                <i class="fa-solid fa-clock-rotate-left" style="font-size:24px; color:var(--warning);"></i>
-                <div class="stat-info">
-                    <h4>ใกล้กำหนดคืน (≤ 2 วัน)</h4>
-                    <h2 class="${nearExpiry > 0 ? 'text-warning' : ''}">${nearExpiry} <small style="font-size:14px; font-weight:normal;">เล่ม</small></h2>
-                </div>
-            </div>
-            <div class="stat-card glass" style="background: rgba(255,255,255,0.03);">
-                <i class="fa-solid fa-file-invoice-dollar" style="font-size:24px; color:var(--danger);"></i>
-                <div class="stat-info">
-                    <h4>ยอดค้างชำระ (Fines)</h4>
-                    <h2 class="${totalFines > 0 ? 'text-red' : ''}">฿${totalFines.toFixed(2)}</h2>
-                </div>
-            </div>
-        `;
-        // --------------------------------------------------------
-
         trs.forEach(tr => {
             const isFined = parseFloat(tr.fine_amount) > 0;
             

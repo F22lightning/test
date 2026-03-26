@@ -54,7 +54,7 @@
             <nav>
                 <!-- การใส่ data-target ช่วยให้เรารู้ว่ากดปุ่มไหนไปโผล่หน้าอะไร, การใส่ data-i18n ช่วยบอกว่าให้แปลข้อความนี้จาก Dictionary ด้วยคีย์ไหน -->
                 <!-- คลาส admin-only จะถูกซ่อนอัตโนมัติหากผู้ใช้ไม่ได้เป็น Admin -->
-                <a href="#" class="nav-item admin-only" data-target="dashboard"><i class="fa-solid fa-chart-pie"></i> <span data-i18n="nav_dashboard">Dashboard</span></a>
+                <a href="#" class="nav-item" data-target="dashboard"><i class="fa-solid fa-chart-pie"></i> <span data-i18n="nav_dashboard">Dashboard</span></a>
                 <a href="#" class="nav-item" data-target="borrow-return"><i class="fa-solid fa-barcode"></i> <span data-i18n="nav_self_service">Self-Service</span></a>
                 <a href="#" class="nav-item" data-target="books"><i class="fa-solid fa-book"></i> <span data-i18n="nav_books">Books & Resources</span></a>
                 <a href="#" class="nav-item admin-only" data-target="users-list"><i class="fa-solid fa-users"></i> <span data-i18n="nav_users">Users / Members</span></a>
@@ -96,7 +96,7 @@
                 
                 <!-- ส่วนแผงควบคุม Dashboard (id = dashboard ใช้คู่กับปุ่มนำทาง) -->
                 <!-- แอดทริบิวต์ active ใช้สั่งให้โหลดหน้านี้ขึ้นมาในค่าเริ่มต้น -->
-                <section id="dashboard" class="view admin-only">
+                <section id="dashboard" class="view">
                     <!-- ส่วนแสดงข้อมูลตัวเลขรวม (Stats) จะถูกวาดเพิ่มมาด้วย JavaScript เสมอ -->
                     <div class="stats-grid" id="daily-stats">
                         <!-- ข้อมูลสถิติถูก Injection โดยตรง -->
@@ -286,11 +286,6 @@
 
                 <!-- เมนูประวัติและรายการทั้งหมด (เห็นทุก Transaction ทั้งที่คืนแล้วและการเตือนเรื่องค่าปรับ) -->
                 <section id="transactions" class="view">
-                    <!-- ชุดสรุปข้อมูลยืม-คืนส่วนตัวสำหรับผู้ใช้ (Stats) -->
-                    <div class="stats-grid mb-6" id="user-stats-grid">
-                        <!-- สร้างผ่าน Javascript -->
-                    </div>
-
                     <div class="card glass">
                         <!-- โชว์รายการเบิก/จ่ายคืนทั้งหมดในระบบ (ถ้า Member เห็นแค่ของตัวเอง, Admin เห็นรวม) -->
                         <h3 data-i18n="all_transactions">All Transactions</h3>
